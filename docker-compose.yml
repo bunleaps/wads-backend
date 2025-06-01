@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-5000}:${PORT:-5000}"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
