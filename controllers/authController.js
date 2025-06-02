@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendOTPEmail } from "../utils/emailService.js";
+import Ticket from "../models/Ticket.js"; // Import Ticket model for deleting associated tickets
 
 // Generate a random 6-digit OTP
 const generateOTP = () => {
@@ -158,9 +159,80 @@ export const signin = async (req, res) => {
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
+        username: user.username,
       },
     });
   } catch (error) {
     res.status(500).json({ message: "Error signing in", error: error.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { firstName, lastName, username } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if username is being changed and if it's already taken
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      user.username = username;
+    }
+
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+
+    await user.save();
+
+    // Return updated user, excluding sensitive fields
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error updating profile", error: error.message });
+  }
+};
+
+export const deleteProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Optional: Handle associated data.
+    // For example, delete tickets created by this user.
+    // Depending on business logic, you might want to anonymize or reassign them instead.
+    await Ticket.deleteMany({ creator: userId });
+
+    // Note: Deleting purchases might not be desirable for record-keeping.
+    // await Purchase.deleteMany({ user: userId }); // Consider implications before uncommenting
+
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: "User account deleted successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error deleting profile", error: error.message });
   }
 };

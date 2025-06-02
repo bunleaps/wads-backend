@@ -1,5 +1,8 @@
 import User from "../models/User.js";
 import Ticket from "../models/Ticket.js";
+import Purchase from "../models/Purchase.js"; // Import Purchase model
+
+const USER_POPULATE_FIELDS = "username firstName lastName email";
 
 // Get all users
 export const getAllUsers = async (req, res) => {
@@ -82,8 +85,8 @@ export const deleteUser = async (req, res) => {
 export const getAllTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({})
-      .populate("creator", "username email")
-      .populate("assignedAdmin", "username")
+      .populate("creator", USER_POPULATE_FIELDS)
+      .populate("assignedAdmin", USER_POPULATE_FIELDS)
       .populate("purchase", "orderNumber items totalAmount")
       .sort({ createdAt: -1 });
     res.json(tickets);
@@ -98,17 +101,15 @@ export const getAllTickets = async (req, res) => {
 export const getUnassignedTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({ assignedAdmin: null })
-      .populate("creator", "username email")
+      .populate("creator", USER_POPULATE_FIELDS)
       .populate("purchase", "orderNumber")
       .sort({ createdAt: -1 });
     res.json(tickets);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching unassigned tickets",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching unassigned tickets",
+      error: error.message,
+    });
   }
 };
 
@@ -116,7 +117,7 @@ export const getUnassignedTickets = async (req, res) => {
 export const getAdminTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({ assignedAdmin: req.user._id })
-      .populate("creator", "username email")
+      .populate("creator", USER_POPULATE_FIELDS)
       .populate("purchase", "orderNumber")
       .sort({ createdAt: -1 });
     res.json(tickets);
@@ -124,5 +125,31 @@ export const getAdminTickets = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error fetching admin tickets", error: error.message });
+  }
+};
+
+// Get all admin users
+export const getAllAdmins = async (req, res) => {
+  try {
+    const admins = await User.find({ role: "admin" }, "-password -otp");
+    res.json(admins);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching admin users", error: error.message });
+  }
+};
+
+// Get all purchases (admin only)
+export const getAllPurchases = async (req, res) => {
+  try {
+    const purchases = await Purchase.find({})
+      .populate("user", USER_POPULATE_FIELDS) // Populate user details
+      .sort({ createdAt: -1 });
+    res.json(purchases);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching purchases", error: error.message });
   }
 };
