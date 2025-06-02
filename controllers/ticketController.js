@@ -6,6 +6,9 @@ export const createTicket = async (req, res) => {
       title: req.body.title,
       purchase: req.body.purchaseId,
       creator: req.user._id,
+      assignedAdmin: null,
+      status: "open",
+      priority: req.body.priority,
       messages: [
         {
           sender: req.user._id,
