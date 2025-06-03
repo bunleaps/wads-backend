@@ -67,8 +67,8 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Delete all todos associated with the user
-    await Todo.deleteMany({ user: user._id });
+    await Purchase.deleteMany({ user: user._id });
+    await Ticket.deleteMany({ user: user._id });
 
     // Delete the user
     await user.deleteOne();
