@@ -1,9 +1,38 @@
 import Ticket from "../models/Ticket.js";
+import cloudinary from "../config/cloudinary.js"; // Import Cloudinary config
 
 const USER_POPULATE_FIELDS = "username firstName lastName email";
 
+// Helper function to upload files to Cloudinary
+const uploadFilesToCloudinary = async (files) => {
+  const uploadPromises = files.map((file) => {
+    return new Promise((resolve, reject) => {
+      // Use a unique public_id to avoid overwriting, or let Cloudinary generate it
+      // Consider adding a folder structure in Cloudinary e.g., `tickets/${ticketId}/${file.originalname}`
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: "auto", folder: "ticket_attachments" }, // "auto" detects file type
+        (error, result) => {
+          if (error) return reject(error);
+          resolve({
+            url: result.secure_url,
+            public_id: result.public_id,
+            filename: file.originalname,
+          });
+        }
+      );
+      uploadStream.end(file.buffer);
+    });
+  });
+  return Promise.all(uploadPromises);
+};
+
 export const createTicket = async (req, res) => {
   try {
+    let uploadedAttachments = [];
+    if (req.files && req.files.length > 0) {
+      uploadedAttachments = await uploadFilesToCloudinary(req.files);
+    }
+
     const ticket = new Ticket({
       title: req.body.title,
       purchase: req.body.purchaseId,
@@ -15,6 +44,7 @@ export const createTicket = async (req, res) => {
         {
           sender: req.user._id,
           content: req.body.initialMessage,
+          attachments: uploadedAttachments,
         },
       ],
     });
@@ -26,6 +56,7 @@ export const createTicket = async (req, res) => {
       .populate("purchase", "orderNumber items totalAmount"); // Or specific fields as needed
     res.status(201).json(populatedTicket);
   } catch (error) {
+    console.error("Error creating ticket:", error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -37,10 +68,15 @@ export const addMessage = async (req, res) => {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
+    let uploadedAttachments = [];
+    if (req.files && req.files.length > 0) {
+      uploadedAttachments = await uploadFilesToCloudinary(req.files);
+    }
+
     ticket.messages.push({
       sender: req.user._id,
       content: req.body.content,
-      attachments: req.body.attachments || [],
+      attachments: uploadedAttachments,
     });
 
     await ticket.save();
@@ -52,6 +88,7 @@ export const addMessage = async (req, res) => {
       .populate("purchase"); // Or specific fields as needed
     res.json(populatedTicket);
   } catch (error) {
+    console.error("Error adding message to ticket:", error);
     res.status(400).json({ error: error.message });
   }
 };

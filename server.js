@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 const corsOptions = {
-  origin: "https://wads-fck-u.onrender.com", // Allow only this origin
+  origin: "http://localhost:3000", // Allow only this origin
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Added PATCH
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
