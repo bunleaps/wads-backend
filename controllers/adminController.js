@@ -68,12 +68,14 @@ export const deleteUser = async (req, res) => {
     }
 
     await Purchase.deleteMany({ user: user._id });
-    await Ticket.deleteMany({ user: user._id });
+    await Ticket.deleteMany({ creator: user._id }); // Corrected field name from 'user' to 'creator'
 
     // Delete the user
     await user.deleteOne();
 
-    res.json({ message: "User and associated todos deleted successfully" });
+    res.json({
+      message: "User and associated purchases and tickets deleted successfully",
+    }); // Updated success message
   } catch (error) {
     res
       .status(500)
