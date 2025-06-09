@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -15,6 +17,27 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Ticket MERN API",
+      version: "1.0.0",
+      description: "API documentation for the Ticket MERN application",
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+        description: "Development server",
+      },
+    ],
+  },
+  apis: ["./routes/*.js"], // Path to the API routes
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
 // Middleware
 const corsOptions = {
   origin: "https://wads-frontend-pi.vercel.app", // Allow only this origin
@@ -24,8 +47,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions)); // Use configured CORS for all requests
-
 app.use(express.json());
+
+// Swagger UI setup
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
