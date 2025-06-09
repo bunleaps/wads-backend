@@ -4,6 +4,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import path from "path";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -28,29 +29,51 @@ const swaggerOptions = {
     },
     servers: [
       {
+        url: "https://wads-backend.vercel.app",
+        description: "Production server",
+      },
+      {
         url: `http://localhost:${PORT}`,
         description: "Development server",
       },
     ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
   },
-  apis: ["./routes/*.js"], // Path to the API routes
+  apis: ["./routes/*.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 const corsOptions = {
-  origin: "https://wads-frontend-pi.vercel.app", // Allow only this origin
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Added PATCH
+  origin: "https://wads-frontend-pi.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-app.use(cors(corsOptions)); // Use configured CORS for all requests
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.static("public"));
 
-// Swagger UI setup
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Serve Swagger UI static files
+app.use("/api-docs", swaggerUi.serve);
+app.get("/api-docs", swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCssUrl: "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css",
+  customJs: [
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui-bundle.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui-standalone-preset.js"
+  ]
+}));
 
 // MongoDB connection
 mongoose
